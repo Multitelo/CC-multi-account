@@ -1,0 +1,30 @@
+{
+  "name": "cc-multi-account",
+  "version": "1.0.0",
+  "description": "Use Claude Code across several Claude subscriptions on Windows, switching accounts automatically mid-session.",
+  "license": "MIT",
+  "bin": {
+    "cc": "cc.js"
+  },
+  "files": [
+    "cc.js",
+    "lib/"
+  ],
+  "scripts": {
+    "test": "node test/relay.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "win32"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "multi-account",
+    "rate-limit",
+    "windows"
+  ]
+}
