@@ -14,8 +14,8 @@ const H = require('./lib/history');
 const { pinFor, norm } = require('./lib/sessions');
 const OS = require('./lib/platform');
 
-if (!OS.IS_WIN) {
-  // Messages say `cc ...`; on macOS and Linux the command is `ccm`.
+{
+  // Messages are written as `cc ...`; show them as `ccm ...`.
   for (const k of ['log', 'warn', 'error']) {
     const orig = console[k].bind(console);
     console[k] = (...a) => orig(...a.map(OS.say));
@@ -94,7 +94,7 @@ async function health(cfg) {
 
 async function ensureRelay(cfg, quiet) {
   if (await health(cfg)) return true;
-  if (!quiet) process.stderr.write('cc: starting the relay...\n');
+  if (!quiet) process.stderr.write('ccm: starting the relay...\n');
   const child = spawn(process.execPath, [P.CLI, 'serve'], { detached: true, stdio: 'ignore', windowsHide: true });
   child.unref();
   for (let i = 0; i < 40; i++) {
@@ -136,18 +136,18 @@ async function launch(args) {
 
   let env = cleanEnv();
   if (!cfg.order.length) {
-    process.stderr.write('cc: no accounts yet ("cc login <name>"), so starting Claude Code with its normal login.\n');
+    process.stderr.write('ccm: no accounts yet ("ccm login <name>"), so starting Claude Code with its normal login.\n');
   } else if (await ensureRelay(cfg)) {
     env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${cfg.port}${account ? `/a/${encodeURIComponent(account)}` : ''}`;
     env.ANTHROPIC_AUTH_TOKEN = cfg.secret;
     env.CC_RELAY = '1';
   } else {
-    process.stderr.write('cc: the relay did not start, so this session uses Claude Code\'s normal login. Run "cc doctor".\n');
+    process.stderr.write('ccm: the relay did not start, so this session uses Claude Code\'s normal login. Run "ccm doctor".\n');
   }
 
   process.on('SIGINT', () => {}); // Claude Code handles Ctrl+C itself
   const child = spawn(exe, args, { stdio: 'inherit', env });
-  child.on('error', e => { console.error(`cc: could not start Claude Code: ${e.message}`); process.exit(1); });
+  child.on('error', e => { console.error(`ccm: could not start Claude Code: ${e.message}`); process.exit(1); });
   child.on('exit', code => process.exit(code ?? 1));
 }
 
@@ -184,7 +184,7 @@ async function cmdLogin(args) {
     if (!creds || !creds.refreshToken) die('sign-in finished but no subscription login was found');
 
     let who = { uuid: null, email: null, plan: null };
-    try { who = await A.profile(creds.accessToken); } catch (e) { console.warn(`cc: could not read the account profile (${e.message})`); }
+    try { who = await A.profile(creds.accessToken); } catch (e) { console.warn(`ccm: could not read the account profile (${e.message})`); }
 
     for (const [other, meta] of Object.entries(cfg.accounts)) {
       if (other !== name && who.uuid && meta.uuid === who.uuid) {
@@ -473,42 +473,42 @@ function cmdStatusline() {
   const pinned = m ? decodeURIComponent(m[1]) : pinFor(cwd, cfg.pins);
   const name = pinned || st.active;
   const a = (st.accounts || []).find(x => x.name === name);
-  if (!a) return process.stdout.write(`cc: ${name || 'no account'}`);
+  if (!a) return process.stdout.write(`ccm: ${name || 'no account'}`);
   const flag = a.broken ? ' LOGIN BROKEN' : a.exhaustedUntil ? ' at limit' : '';
-  process.stdout.write(`cc ${pinned ? 'pinned ' : ''}${a.name} | 5h ${pct(a.h5).trim()} | wk ${pct(a.d7).trim()}${flag}`);
+  process.stdout.write(`ccm ${pinned ? 'pinned ' : ''}${a.name} | 5h ${pct(a.h5).trim()} | wk ${pct(a.d7).trim()}${flag}`);
 }
 
 function help() {
-  const text = `${OS.CMD} ${P.VERSION} - Claude Code across several accounts, switching automatically
+  const text = `ccm ${P.VERSION} - Claude Code across several accounts, switching automatically
 
-  cc                         open the dashboard
+  ccm                         open the dashboard
 
-Start Claude Code through cc:
-  cc start [claude args]     start Claude Code (e.g. cc start --resume)
-  cc --resume, cc -p "..."   claude flags also work directly
-  cc start --account <name>  this session on one account only
+Start Claude Code through ccm:
+  ccm start [claude args]     start Claude Code (e.g. ccm start --resume)
+  ccm --resume, ccm -p "..."  claude flags also work directly
+  ccm start --account <name>  this session on one account only
 
 Accounts:
-  cc login <name>            sign in an account (opens the browser)
-  cc remove <name> --yes     forget an account
-  cc status [--refresh]      usage and state of every account
-  cc use <name>              switch now
-  cc auto on|off             automatic switching
-  cc threshold <5h> [week]   when to switch, in percent (default 95 98)
-  cc order <a> <b> ...       priority order
+  ccm login <name>            sign in an account (opens the browser)
+  ccm remove <name> --yes     forget an account
+  ccm status [--refresh]      usage and state of every account
+  ccm use <name>              switch now
+  ccm auto on|off             automatic switching
+  ccm threshold <5h> [week]   when to switch, in percent (default 95 98)
+  ccm order <a> <b> ...       priority order
 
 Projects:
-  cc pin [account] [folder]  always use one account in a folder
-  cc unpin [folder]          remove a pin
-  cc pins                    list pins
+  ccm pin [account] [folder]  always use one account in a folder
+  ccm unpin [folder]          remove a pin
+  ccm pins                    list pins
 
 Other:
-  cc log [-n 50] | --usage   switch history, or daily usage peaks
-  cc doctor                  check that everything works
-  cc install | uninstall     wire into the terminal, VS Code, status line, startup
-  cc serve | stop | restart  control the relay
-  cc notify on|off           notifications`;
-  console.log(OS.IS_WIN ? text : text.replace(/\bcc(?= )/g, OS.CMD));
+  ccm log [-n 50] | --usage   switch history, or daily usage peaks
+  ccm doctor                  check that everything works
+  ccm install | uninstall     wire into the terminal, VS Code, status line, startup
+  ccm serve | stop | restart  control the relay
+  ccm notify on|off           notifications`;
+  console.log(text + (OS.IS_WIN ? '\n\nOn Windows, `cc` works as a shortcut for `ccm`.' : ''));
 }
 
 function dashboard() {
@@ -564,6 +564,6 @@ function dashboard() {
     default: return help();
   }
 })().catch(e => {
-  console.error(`cc: ${e instanceof CcError ? e.message : e.stack || e.message}`);
+  console.error(`ccm: ${e instanceof CcError ? e.message : e.stack || e.message}`);
   process.exit(1);
 });

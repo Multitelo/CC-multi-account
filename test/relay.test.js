@@ -201,7 +201,7 @@ async function main() {
   await test('status line shows the active account for cc sessions only', async () => {
     await wait(500);
     const on = spawnSync(process.execPath, [CLI, 'statusline'], { env: { ...env, CC_RELAY: '1' }, input: '{"cwd":"C:\\\\elsewhere"}', encoding: 'utf8' });
-    assert.ok(/^cc main \| 5h 20% \| wk 40%/.test(on.stdout), on.stdout);
+    assert.ok(/^ccm main \| 5h 20% \| wk 40%/.test(on.stdout), on.stdout);
     const off = spawnSync(process.execPath, [CLI, 'statusline'], { env, input: '{}', encoding: 'utf8' });
     assert.strictEqual(off.stdout, '');
   });

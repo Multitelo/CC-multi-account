@@ -4,9 +4,8 @@
 
 ### Never hit a Claude Code limit mid-task again.
 
-`cc` runs Claude Code across all your Claude subscriptions and moves your session to
+`ccm` runs Claude Code across all your Claude subscriptions and moves your session to
 another account **the moment one runs low**: same conversation, no restart, no re-login.
-<br><sub>The command is <code>cc</code> on Windows and <code>ccm</code> on macOS and Linux.</sub>
 
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white)](#install)
 [![macOS](https://img.shields.io/badge/macOS-supported-000000?logo=apple&logoColor=white)](#install)
@@ -15,7 +14,7 @@ another account **the moment one runs low**: same conversation, no restart, no r
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-<img src="docs/dashboard.svg" alt="The cc dashboard: usage bars for three accounts, one about to run out, with cc already on the next" width="100%">
+<img src="docs/dashboard.svg" alt="The ccm dashboard: usage bars for three accounts, one about to run out, with ccm already on the next" width="100%">
 
 </div>
 
@@ -30,7 +29,7 @@ You're deep in a refactor. Claude Code is mid-edit. Then:
 You switch accounts by hand, start a new session, and re-explain everything.
 Or you use an account switcher, and every few hours it asks you to **log in again**.
 
-**`cc` fixes both.**
+**`ccm` fixes both.**
 
 ## What you get
 
@@ -39,19 +38,19 @@ threshold, the next message goes to the account with the most room left.
 Your conversation carries on as if nothing happened.
 
 🛟 **Catches the limit you didn't see coming.** If Anthropic refuses a message
-because the account just ran out, cc resends **that same message** on another
+because the account just ran out, ccm resends **that same message** on another
 account. Claude Code never sees the error.
 
-📈 **Switches before you run out.** cc watches how fast you're burning
+📈 **Switches before you run out.** ccm watches how fast you're burning
 through the 5-hour window. If at this pace you'd hit the wall within 15
 minutes, it moves you now.
 
-🔐 **Never logs you out.** Each account is signed in once, just for cc, and
-only cc refreshes it. No other tool can invalidate it. Logins are encrypted
+🔐 **Never logs you out.** Each account is signed in once, just for ccm, and
+only ccm refreshes it. No other tool can invalidate it. Logins are encrypted
 at rest (Windows DPAPI, the macOS Keychain, or a private key file on Linux).
 
 ⏱️ **Gets your next 5-hour window started sooner.** The window only starts
-counting at your first message. cc starts a new one the second the last one
+counting at your first message. ccm starts a new one the second the last one
 ends, so it resets hours earlier. Or stagger them across accounts so one is
 always nearly fresh.
 
@@ -59,7 +58,7 @@ always nearly fresh.
 projects on your own: per folder, automatically.
 
 🖥️ **A dashboard that shows everything.** Usage bars, reset times, burn
-rate, switch history, daily peaks, Anthropic's live status. One command.
+rate, switch history, daily peaks, Anthropic's live status. One command: `ccm`.
 
 🧩 **Nothing else changes.** Your skills, plugins, MCP servers, hooks, memory
 and history work exactly as before. VS Code and the terminal both work.
@@ -78,31 +77,23 @@ cd CC-multi-account
 npm install -g .
 ```
 
-> **The command is `cc` on Windows and `ccm` on macOS and Linux**, where `cc`
-> is already the C compiler. Everything below works the same with either name.
-
-**Windows**
-
-```powershell
-cc              # open the dashboard, press n to add each account
-cc install      # connect VS Code, the status line and start-at-login
-```
-
-**macOS / Linux**
-
 ```bash
 ccm             # open the dashboard, press n to add each account
 ccm install     # connect VS Code, the status line and start-at-login
 ```
 
 Reload VS Code (*Developer: Reload Window*) and you're done. In a terminal,
-use `cc start` (macOS/Linux: `ccm start`) instead of `claude`.
+use `ccm start` instead of `claude`.
+
+> **Windows shortcut:** on Windows you can also type `cc` instead of `ccm`
+> (`cc`, `cc start`, `cc status`, ...). It isn't added on macOS or Linux,
+> where `cc` is the C compiler.
 
 > When you add an account, a browser window opens. **Check it shows the
 > account you mean before you approve.** If it picks the wrong one, use a
 > private window. On a machine without a browser (SSH, a server), use
-> `ccm login <name> --manual` (Windows: `cc login <name> --manual`): you get
-> a link to open on any device and paste the code back.
+> `ccm login <name> --manual`: you get a link to open on any device and paste
+> the code back.
 
 ## See it
 
@@ -121,7 +112,7 @@ use `cc start` (macOS/Linux: `ccm start`) instead of `claude`.
 And in every terminal session, the status line:
 
 ```
-cc backup | 5h 31% | wk 24%
+ccm backup | 5h 31% | wk 24%
 ```
 
 ## Why other switchers log you out (and this doesn't)
@@ -131,20 +122,20 @@ replaces it. Most switchers work by copying login files in and out of
 `~/.claude`. Then the switcher and Claude Code both refresh the same login,
 and whichever goes second is left holding a dead token. You're logged out.
 
-`cc` takes a different route. Claude Code talks to a small relay on your own
+`ccm` takes a different route. Claude Code talks to a small relay on your own
 machine, and the relay attaches the right account to each request:
 
 ```
- Claude Code  (VS Code, or `cc start` / `ccm start` in a terminal)
+ Claude Code  (VS Code, or `ccm start` in a terminal)
       │   ANTHROPIC_BASE_URL = http://127.0.0.1:47821
       ▼
- cc relay  ── local only; owns each account's login; picks the account per request
+ ccm relay  ── local only; owns each account's login; picks the account per request
       │
       ▼
  api.anthropic.com
 ```
 
-| | File-swapping switchers | **cc** |
+| | File-swapping switchers | **ccm** |
 |---|:---:|:---:|
 | Switch in the middle of a session | ⚠️ on the next refresh, sometimes | ✅ on the next message |
 | Retry the message that hit the limit | ❌ | ✅ |
@@ -168,17 +159,17 @@ cd CC-multi-account
 npm install -g .
 ```
 
-Then open the dashboard (`cc` on Windows, `ccm` on macOS/Linux), press **n** to
-add each account, and run `cc install` (macOS/Linux: `ccm install`).
+Then open the dashboard with `ccm`, press **n** to add each account, and run
+`ccm install`.
 
 | | Windows | macOS | Linux |
 |---|---|---|---|
-| Command | `cc` (and `ccm`) | `ccm` | `ccm` |
+| Command | `ccm` (shortcut: `cc`) | `ccm` | `ccm` |
 | Logins encrypted with | DPAPI (your Windows user) | AES-256-GCM, key in your login Keychain | AES-256-GCM, key in `~/.cc/master.key` (mode 600) |
 | Starts with your computer | Startup folder | LaunchAgent | systemd user service (or XDG autostart) |
 | Notifications | Windows toasts | Notification Center | `notify-send` (libnotify) |
 | VS Code settings | `%APPDATA%\Code\User` | `~/Library/Application Support/Code/User` | `~/.config/Code/User` |
-| Status | used daily | covered by automated tests; reports welcome | covered by automated tests; reports welcome |
+| Status | used daily | covered by automated tests; sign-in verified; reports welcome | covered by automated tests; sign-in verified; reports welcome |
 
 > **Please read.** This project is not affiliated with Anthropic. Using several
 > personal subscriptions to get past usage limits may not be allowed under
@@ -189,12 +180,11 @@ add each account, and run `cc install` (macOS/Linux: `ccm install`).
 
 ## Reference
 
-Commands are shown for Windows (`cc`) and macOS / Linux (`ccm`). Paths are
-shown as `~/.cc`, which is `%USERPROFILE%\.cc` on Windows.
+Paths are shown as `~/.cc`, which is `%USERPROFILE%\.cc` on Windows.
 
 ### The dashboard
 
-Run `cc` on Windows or `ccm` on macOS and Linux.
+Run `ccm`.
 
 | Tab | Shows | Keys |
 |---|---|---|
@@ -209,25 +199,27 @@ Everywhere: **←→** tabs, **a** auto-switch on/off, **r** re-check usage,
 
 ### Commands
 
-| Windows | macOS / Linux | What it does |
-|---|---|---|
-| `cc` | `ccm` | Open the dashboard |
-| `cc start [claude args]` | `ccm start [claude args]` | Start Claude Code through cc; any `claude` flag works (`start --resume`, or directly `--resume`) |
-| `cc start --account backup` | `ccm start --account backup` | One session on one account only |
-| `cc login <name> [--manual]` | `ccm login <name> [--manual]` | Sign an account in (or in again); `--manual` for machines without a browser |
-| `cc remove <name> --yes` | `ccm remove <name> --yes` | Forget an account |
-| `cc status [--refresh]` | `ccm status [--refresh]` | Usage and state of every account |
-| `cc use <name>` | `ccm use <name>` | Switch now |
-| `cc auto on\|off` | `ccm auto on\|off` | Automatic switching |
-| `cc threshold <5h> [week]` | `ccm threshold <5h> [week]` | When to switch, in percent (e.g. `threshold 90 97`) |
-| `cc order <a> <b> ...` | `ccm order <a> <b> ...` | Priority order |
-| `cc pin [account] [folder]` | `ccm pin [account] [folder]` | Always use one account in a folder |
-| `cc unpin [folder]` / `cc pins` | `ccm unpin [folder]` / `ccm pins` | Remove a pin / list pins |
-| `cc log [-n 50]` / `cc log --usage` | `ccm log [-n 50]` / `ccm log --usage` | Switch history / highest usage per day |
-| `cc notify on\|off` | `ccm notify on\|off` | Desktop notifications |
-| `cc doctor` | `ccm doctor` | Check everything |
-| `cc install` / `cc uninstall` | `ccm install` / `ccm uninstall` | Connect to or disconnect from VS Code, the status line and start-at-login |
-| `cc serve` / `cc stop` / `cc restart` | `ccm serve` / `ccm stop` / `ccm restart` | Control the relay |
+| Command | What it does |
+|---|---|
+| `ccm` | Open the dashboard |
+| `ccm start [claude args]` | Start Claude Code through ccm; any `claude` flag works (`ccm start --resume`, or directly `ccm --resume`) |
+| `ccm start --account backup` | One session on one account only |
+| `ccm login <name> [--manual]` | Sign an account in (or in again); `--manual` for machines without a browser |
+| `ccm remove <name> --yes` | Forget an account |
+| `ccm status [--refresh]` | Usage and state of every account |
+| `ccm use <name>` | Switch now |
+| `ccm auto on\|off` | Automatic switching |
+| `ccm threshold <5h> [week]` | When to switch, in percent (`ccm threshold 90 97`) |
+| `ccm order <a> <b> ...` | Priority order |
+| `ccm pin [account] [folder]` | Always use one account in a folder |
+| `ccm unpin [folder]` / `ccm pins` | Remove a pin / list pins |
+| `ccm log [-n 50]` / `ccm log --usage` | Switch history / highest usage per day |
+| `ccm notify on\|off` | Desktop notifications |
+| `ccm doctor` | Check everything |
+| `ccm install` / `ccm uninstall` | Connect to or disconnect from VS Code, the status line and start-at-login |
+| `ccm serve` / `ccm stop` / `ccm restart` | Control the relay |
+
+On Windows, every command also works with `cc` in place of `ccm`.
 
 ### How switching decides
 
@@ -237,8 +229,8 @@ On every request, the active account counts as **low** if:
 2. at the pace of the last 30 minutes it would hit 100% within the early-switch
    time (15 min), before its window resets.
 
-When it's low, cc moves to the account with the most room left, notifies you
-and logs why. If every account is low, cc keeps going on whatever still works.
+When it's low, ccm moves to the account with the most room left, notifies you
+and logs why. If every account is low, ccm keeps going on whatever still works.
 If a request is refused for the limit, it's retried on each other account
 before the error reaches Claude Code. Pinned folders and `--account` sessions
 never switch.
@@ -266,13 +258,12 @@ In the dashboard's settings tab, or `~/.cc/config.json` (picked up within 30 sec
 ### Good to know
 
 - **VS Code needs the relay running.** It starts with your computer and restarts
-  itself if it crashes. `cc doctor` (`ccm doctor`) tells you if it's down. In a
-  terminal, `cc start` (`ccm start`) starts it on demand and falls back to your
-  normal login if it can't.
+  itself if it crashes. `ccm doctor` tells you if it's down. In a terminal,
+  `ccm start` starts it on demand and falls back to your normal login if it can't.
 - **"Total cost" in the VS Code panel is only an estimate.** Claude Code shows it
   because it was started with a key instead of a claude.ai login. Nothing is
   charged: requests use your subscription logins.
-- **claude.ai connectors are off in cc sessions**, because the login comes from cc.
+- **claude.ai connectors are off in ccm sessions**, because the login comes from ccm.
   Local MCP servers still work.
 - **After a switch, the conversation continues on the other account.** Only mix
   accounts whose data you're allowed to share.
@@ -286,9 +277,9 @@ In the dashboard's settings tab, or `~/.cc/config.json` (picked up within 30 sec
   [Install](#install)), and are sent only to Anthropic (`api.anthropic.com`,
   `platform.claude.com`). The only other host contacted is `status.claude.com`.
 - Sign-in uses the same OAuth flow (PKCE) and client as Claude Code. On
-  Windows, Claude Code itself performs the sign-in and cc deletes the temporary
+  Windows, Claude Code itself performs the sign-in and ccm deletes the temporary
   plain-text copy right after encrypting it.
-- `cc install` / `ccm install` backs up every settings file it changes to `~/.cc/backups/`.
+- `ccm install` backs up every settings file it changes to `~/.cc/backups/`.
 - The local key in VS Code's settings only unlocks the relay on 127.0.0.1. It isn't
   an Anthropic credential.
 
@@ -306,35 +297,26 @@ In the dashboard's settings tab, or `~/.cc/config.json` (picked up within 30 sec
 
 | Problem | Fix |
 |---|---|
-| VS Code Claude can't connect | `cc doctor`, then `cc restart` (macOS/Linux: `ccm doctor`, `ccm restart`) |
-| An account shows "login broken" | Select it in the dashboard and press **l**, or `cc login <name>` (`ccm login <name>`) |
+| VS Code Claude can't connect | `ccm doctor`, then `ccm restart` |
+| An account shows "login broken" | Select it in the dashboard and press **l**, or `ccm login <name>` |
 | The browser signs in the wrong account | Cancel, use a private window signed into the right account, try again |
-| No browser on this machine | `ccm login <name> --manual` (Windows: `cc login <name> --manual`) |
+| No browser on this machine | `ccm login <name> --manual` |
+| `ccm` not found after installing | Open a new terminal; check that npm's global folder (`npm prefix -g`) is on your PATH |
 | No notifications on Linux | Install libnotify (`notify-send`), e.g. `sudo apt install libnotify-bin` |
-| Usage numbers look stale | Press **r** in the dashboard, or `cc status --refresh` (`ccm status --refresh`) |
+| Usage numbers look stale | Press **r** in the dashboard, or `ccm status --refresh` |
 | Anything else | `~/.cc/relay.log` |
 
 ### Uninstall
-
-**Windows**
-
-```powershell
-cc uninstall      # disconnect VS Code, status line, start-at-login
-cc stop           # stop the relay
-npm uninstall -g cc-multi-account
-Remove-Item -Recurse "$env:USERPROFILE\.cc"   # deletes saved logins and history
-```
-
-**macOS / Linux**
 
 ```bash
 ccm uninstall     # disconnect VS Code, status line, start-at-login
 ccm stop          # stop the relay
 npm uninstall -g cc-multi-account
 rm -rf ~/.cc      # deletes saved logins and history
+                  # (Windows PowerShell: Remove-Item -Recurse "$env:USERPROFILE\.cc")
 ```
 
-On macOS, cc also keeps its encryption key in the Keychain under
+On macOS, ccm also keeps its encryption key in the Keychain under
 `cc-multi-account`; delete it in Keychain Access if you want it gone.
 
 ## Contributing
@@ -355,7 +337,7 @@ accounts.
 | `cc.js` | Command line and launcher |
 | `lib/relay.js` | Relay: choosing accounts, forwarding, refresh, retries, window starts, burn rate |
 | `lib/tui.js` | Dashboard |
-| `lib/platform.js` | What differs per OS: command name, paths, notifications, start-at-login |
+| `lib/platform.js` | What differs per OS: paths, notifications, start-at-login |
 | `lib/vault.js` | Encryption of saved logins (DPAPI / Keychain / key file) |
 | `lib/signin.js` | Browser sign-in (OAuth with PKCE) |
 | `lib/anthropic.js` | Token refresh, usage, profile, 1-token message |
@@ -366,4 +348,4 @@ accounts.
 
 ## License
 
-[MIT](LICENSE). If cc saves you from a limit, a ⭐ helps others find it.
+[MIT](LICENSE). If ccm saves you from a limit, a ⭐ helps others find it.

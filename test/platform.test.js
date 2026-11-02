@@ -32,7 +32,7 @@ async function test(name, fn) {
   await test('command is ccm and messages say ccm', async () => {
     assert.strictEqual(OS.CMD, 'ccm');
     assert.strictEqual(OS.say('run "cc login main" or cc --resume'), 'run "ccm login main" or ccm --resume');
-    assert.strictEqual(OS.say('cc relay: missing key'), 'cc relay: missing key', 'product name untouched');
+    assert.strictEqual(OS.say('ccm relay: missing key'), 'ccm relay: missing key', 'labels untouched');
   });
 
   await test('VS Code settings path', async () => {
