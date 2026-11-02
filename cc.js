@@ -12,6 +12,15 @@ const S = require('./lib/store');
 const A = require('./lib/anthropic');
 const H = require('./lib/history');
 const { pinFor, norm } = require('./lib/sessions');
+const OS = require('./lib/platform');
+
+if (!OS.IS_WIN) {
+  // Messages say `cc ...`; on macOS and Linux the command is `ccm`.
+  for (const k of ['log', 'warn', 'error']) {
+    const orig = console[k].bind(console);
+    console[k] = (...a) => orig(...a.map(OS.say));
+  }
+}
 
 const COMMANDS = new Set([
   'login', 'remove', 'status', 'list', 'use', 'auto', 'pin', 'unpin', 'pins', 'threshold',
@@ -50,20 +59,7 @@ function cleanEnv() {
   return env;
 }
 
-function findClaude() {
-  const dirs = (process.env.PATH || '').split(path.delimiter).filter(Boolean);
-  for (const d of dirs) {
-    const exe = path.join(d, 'claude.exe');
-    if (fs.existsSync(exe)) return exe;
-  }
-  for (const d of dirs) {
-    if (!fs.existsSync(path.join(d, 'claude.cmd'))) continue;
-    const exe = path.join(d, 'node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe');
-    if (fs.existsSync(exe)) return exe;
-  }
-  const local = path.join(P.HOME, '.local', 'bin', 'claude.exe');
-  return fs.existsSync(local) ? local : null;
-}
+const findClaude = OS.findClaude;
 
 function request(cfg, method, pathname, body, timeout = 4000) {
   return new Promise((resolve, reject) => {
@@ -159,28 +155,35 @@ async function launch(args) {
 
 async function cmdLogin(args) {
   const name = args.find(a => !a.startsWith('--'));
-  if (!name) die('usage: cc login <name> [--email you@example.com] [--replace]');
+  if (!name) die('usage: cc login <name> [--email you@example.com] [--replace] [--manual]');
   if (!S.NAME_RE.test(name)) die('account names use letters, digits, - and _ (max 32)');
   const emailIdx = args.indexOf('--email');
   const email = emailIdx !== -1 ? args[emailIdx + 1] : null;
   const cfg = S.loadConfig();
   const exe = findClaude();
-  if (!exe) die('could not find Claude Code (claude.exe) on PATH');
-
+  
   const tmp = path.join(P.DATA, `login-${crypto.randomBytes(6).toString('hex')}`);
   fs.mkdirSync(tmp, { recursive: true });
   try {
     console.log(`Signing in "${name}". A browser window will open.`);
     console.log('Make sure the browser shows the account you want for this name before you approve.\n');
-    const r = spawnSync(exe, ['auth', 'login', '--claudeai', ...(email ? ['--email', email] : [])], {
-      stdio: 'inherit', env: { ...cleanEnv(), CLAUDE_CONFIG_DIR: tmp },
-    });
-    const credFile = path.join(tmp, '.credentials.json');
-    if (r.status !== 0 || !fs.existsSync(credFile)) die('sign-in did not finish, nothing was saved');
-    const creds = JSON.parse(fs.readFileSync(credFile, 'utf8')).claudeAiOauth;
+    let creds;
+    if (OS.IS_WIN && !args.includes('--direct') && !args.includes('--manual')) {
+      const exe = findClaude();
+      if (!exe) die('could not find Claude Code (claude.exe) on PATH');
+      const r = spawnSync(exe, ['auth', 'login', '--claudeai', ...(email ? ['--email', email] : [])], {
+        stdio: 'inherit', env: { ...cleanEnv(), CLAUDE_CONFIG_DIR: tmp },
+      });
+      const credFile = path.join(tmp, '.credentials.json');
+      if (r.status !== 0 || !fs.existsSync(credFile)) die('sign-in did not finish, nothing was saved');
+      creds = JSON.parse(fs.readFileSync(credFile, 'utf8')).claudeAiOauth;
+    } else {
+      // macOS keeps Claude Code's login in the Keychain, so cc signs in itself.
+      creds = await require('./lib/signin').signIn({ email, manual: args.includes('--manual') });
+    }
     if (!creds || !creds.refreshToken) die('sign-in finished but no subscription login was found');
 
-    let who = { uuid: null, email: null };
+    let who = { uuid: null, email: null, plan: null };
     try { who = await A.profile(creds.accessToken); } catch (e) { console.warn(`cc: could not read the account profile (${e.message})`); }
 
     for (const [other, meta] of Object.entries(cfg.accounts)) {
@@ -198,14 +201,14 @@ async function cmdLogin(args) {
       refreshToken: creds.refreshToken,
       expiresAt: creds.expiresAt,
       scopes: creds.scopes,
-      subscriptionType: creds.subscriptionType || null,
+      subscriptionType: creds.subscriptionType || who.plan || null,
     });
     const fresh = S.loadConfig();
-    fresh.accounts[name] = { email: who.email, uuid: who.uuid, plan: creds.subscriptionType || null, addedAt: new Date().toISOString() };
+    fresh.accounts[name] = { email: who.email, uuid: who.uuid, plan: creds.subscriptionType || who.plan || null, addedAt: new Date().toISOString() };
     if (!fresh.order.includes(name)) fresh.order.push(name);
     S.saveConfig(fresh);
     H.append({ type: 'login', account: name, email: who.email });
-    console.log(`\nSaved "${name}"${who.email ? ` (${who.email})` : ''}, plan: ${creds.subscriptionType || 'unknown'}.`);
+    console.log(`\nSaved "${name}"${who.email ? ` (${who.email})` : ''}, plan: ${creds.subscriptionType || who.plan || 'unknown'}.`);
     if (await tellRelay(fresh, '/_cc/reload')) console.log('The running relay picked it up.');
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true }); // holds a plain-text copy of the login
@@ -384,7 +387,8 @@ async function cmdDoctor() {
   }
   for (const [key, p] of Object.entries(parts)) line(p.check() ? true : null, `${p.label}${p.check() ? '' : ' (not installed; "cc install")'}`);
   if (process.env.ANTHROPIC_API_KEY) line(false, 'ANTHROPIC_API_KEY is set in this shell', 'Claude Code prefers it over subscriptions; remove it unless you want API billing');
-  const clauth = spawnSync('tasklist', ['/FI', 'IMAGENAME eq clauth.exe', '/NH'], { encoding: 'utf8', windowsHide: true });
+  console.log(`  --  logins are protected with ${require('./lib/vault').NAME}`);
+  const clauth = !OS.IS_WIN ? { stdout: '' } : spawnSync('tasklist', ['/FI', 'IMAGENAME eq clauth.exe', '/NH'], { encoding: 'utf8', windowsHide: true });
   if (/clauth\.exe/i.test(clauth.stdout || '')) console.log(' note  clauth is still running. It does not share logins with cc, but remove it once cc is working.');
   console.log(bad ? `\n${bad} problem(s) found.` : '\nEverything looks fine.');
 }
@@ -475,7 +479,7 @@ function cmdStatusline() {
 }
 
 function help() {
-  console.log(`cc ${P.VERSION} - Claude Code across several accounts, switching automatically
+  const text = `${OS.CMD} ${P.VERSION} - Claude Code across several accounts, switching automatically
 
   cc                         open the dashboard
 
@@ -503,7 +507,8 @@ Other:
   cc doctor                  check that everything works
   cc install | uninstall     wire into the terminal, VS Code, status line, startup
   cc serve | stop | restart  control the relay
-  cc notify on|off           Windows notifications`);
+  cc notify on|off           notifications`;
+  console.log(OS.IS_WIN ? text : text.replace(/\bcc(?= )/g, OS.CMD));
 }
 
 function dashboard() {

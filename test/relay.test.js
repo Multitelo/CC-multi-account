@@ -120,8 +120,9 @@ async function main() {
   };
 
   await test('starts the 5-hour window of an idle account right away', async () => {
-    await wait(500);
-    const w = history().find(e => e.type === 'window');
+    const hist = () => { try { return history(); } catch { return []; } };
+    for (let i = 0; i < 50 && !hist().some(e => e.type === 'window'); i++) await wait(100);
+    const w = hist().find(e => e.type === 'window');
     assert.ok(w && w.account === 'backup', 'window event for backup');
     assert.ok(fake.seen.some(e => e.account === 'backup' && e.path === '/v1/messages'));
     assert.ok(!history().some(e => e.type === 'window' && e.account === 'main'), 'main already had a window');

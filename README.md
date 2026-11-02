@@ -7,7 +7,9 @@
 `cc` runs Claude Code across all your Claude subscriptions and moves your session to
 another account **the moment one runs low**: same conversation, no restart, no re-login.
 
-[![Windows](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?logo=windows&logoColor=white)](#requirements)
+[![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white)](#install)
+[![macOS](https://img.shields.io/badge/macOS-supported-000000?logo=apple&logoColor=white)](#install)
+[![Linux](https://img.shields.io/badge/Linux-supported-FCC624?logo=linux&logoColor=black)](#install)
 [![Node.js](https://img.shields.io/badge/node-%E2%89%A518-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -45,7 +47,7 @@ minutes, it moves you now.
 
 🔐 **Never logs you out.** Each account is signed in once, just for cc, and
 only cc refreshes it. No other tool can invalidate it. Logins are encrypted
-with Windows DPAPI.
+at rest (Windows DPAPI, the macOS Keychain, or a private key file on Linux).
 
 ⏱️ **Gets your next 5-hour window started sooner.** The window only starts
 counting at your first message. cc starts a new one the second the last one
@@ -56,25 +58,31 @@ always nearly fresh.
 projects on your own: per folder, automatically.
 
 🖥️ **A dashboard that shows everything.** Usage bars, reset times, burn
-rate, switch history, daily peaks, Anthropic's live status. One command: `cc`.
+rate, switch history, daily peaks, Anthropic's live status. One command.
 
 🧩 **Nothing else changes.** Your skills, plugins, MCP servers, hooks, memory
 and history work exactly as before. VS Code and the terminal both work.
 The Claude Desktop app keeps its own login, untouched.
 
-🪶 **Tiny.** Plain Node.js, zero dependencies, about 35 kB.
+💻 **Windows, macOS and Linux.** Starts with your computer, sends desktop
+notifications, and restarts itself if it ever crashes.
+
+🪶 **Tiny.** Plain Node.js, zero dependencies.
 
 ## Quick start
 
-```powershell
+```bash
 git clone https://github.com/Multitelo/CC-multi-account.git
 cd CC-multi-account
 npm install -g .
 ```
 
-```powershell
-cc              # open the dashboard, press n to add each account
-cc install      # connect VS Code, the status line and start-at-sign-in
+> **The command is `cc` on Windows and `ccm` on macOS and Linux**, where `cc`
+> is already the C compiler. Everything below works the same with either name.
+
+```bash
+cc              # (ccm on macOS/Linux) open the dashboard, press n to add each account
+cc install      # connect VS Code, the status line and start-at-login
 ```
 
 Reload VS Code (*Developer: Reload Window*) and you're done. In a terminal,
@@ -82,7 +90,9 @@ use `cc start` instead of `claude`.
 
 > When you add an account, a browser window opens. **Check it shows the
 > account you mean before you approve.** If it picks the wrong one, use a
-> private window.
+> private window. On a machine without a browser (SSH, a server), use
+> `ccm login <name> --manual`: you get a link to open on any device and
+> paste the code back.
 
 ## See it
 
@@ -108,7 +118,7 @@ cc backup | 5h 31% | wk 24%
 
 A Claude login carries a refresh token that **works only once**: every refresh
 replaces it. Most switchers work by copying login files in and out of
-`~\.claude`. Then the switcher and Claude Code both refresh the same login,
+`~/.claude`. Then the switcher and Claude Code both refresh the same login,
 and whichever goes second is left holding a dead token. You're logged out.
 
 `cc` takes a different route. Claude Code talks to a small relay on your own
@@ -133,14 +143,32 @@ machine, and the relay attaches the right account to each request:
 | Leaves the Desktop app's login alone | ❌ | ✅ |
 | Starts 5-hour windows early / staggered | some | ✅ |
 | Per-folder account pins | rare | ✅ |
-| Logins encrypted at rest | varies | ✅ Windows DPAPI |
+| Logins encrypted at rest | varies | ✅ |
 
-## Requirements
+## Install
 
-- Windows 10 or 11
-- [Node.js](https://nodejs.org) 18 or newer
-- [Claude Code](https://docs.claude.com/en/docs/claude-code) installed (`claude` works in a terminal)
-- Two or more Claude accounts with Claude Code access (Pro, Max, Team or Enterprise)
+**Requirements:** [Node.js](https://nodejs.org) 18+,
+[Claude Code](https://docs.claude.com/en/docs/claude-code) installed (`claude`
+works in a terminal), and two or more Claude accounts with Claude Code access
+(Pro, Max, Team or Enterprise).
+
+```bash
+git clone https://github.com/Multitelo/CC-multi-account.git
+cd CC-multi-account
+npm install -g .
+```
+
+Then add accounts from the dashboard (`cc` / `ccm`, press **n**) and run
+`cc install` / `ccm install`.
+
+| | Windows | macOS | Linux |
+|---|---|---|---|
+| Command | `cc` (and `ccm`) | `ccm` | `ccm` |
+| Logins encrypted with | DPAPI (your Windows user) | AES-256-GCM, key in your login Keychain | AES-256-GCM, key in `~/.cc/master.key` (mode 600) |
+| Starts with your computer | Startup folder | LaunchAgent | systemd user service (or XDG autostart) |
+| Notifications | Windows toasts | Notification Center | `notify-send` (libnotify) |
+| VS Code settings | `%APPDATA%\Code\User` | `~/Library/Application Support/Code/User` | `~/.config/Code/User` |
+| Status | used daily | covered by automated tests; reports welcome | covered by automated tests; reports welcome |
 
 > **Please read.** This project is not affiliated with Anthropic. Using several
 > personal subscriptions to get past usage limits may not be allowed under
@@ -151,9 +179,10 @@ machine, and the relay attaches the right account to each request:
 
 ## Reference
 
-### The dashboard
+Commands are shown as `cc`; use `ccm` on macOS and Linux. Paths are shown as
+`~/.cc`, which is `%USERPROFILE%\.cc` on Windows.
 
-Run `cc`.
+### The dashboard
 
 | Tab | Shows | Keys |
 |---|---|---|
@@ -173,7 +202,7 @@ Everywhere: **←→** tabs, **a** auto-switch on/off, **r** re-check usage,
 | `cc` | Open the dashboard |
 | `cc start [claude args]` | Start Claude Code through cc (`cc start --resume`; flags also work directly: `cc --resume`) |
 | `cc start --account backup` | One session on one account only |
-| `cc login <name>` | Sign an account in (or in again) |
+| `cc login <name> [--manual]` | Sign an account in (or in again); `--manual` for machines without a browser |
 | `cc remove <name> --yes` | Forget an account |
 | `cc status [--refresh]` | Usage and state of every account |
 | `cc use <name>` | Switch now |
@@ -183,9 +212,9 @@ Everywhere: **←→** tabs, **a** auto-switch on/off, **r** re-check usage,
 | `cc pin [account] [folder]` | Always use one account in a folder |
 | `cc unpin [folder]` / `cc pins` | Remove a pin / list pins |
 | `cc log [-n 50]` / `cc log --usage` | Switch history / highest usage per day |
-| `cc notify on\|off` | Windows notifications |
+| `cc notify on\|off` | Desktop notifications |
 | `cc doctor` | Check everything |
-| `cc install` / `cc uninstall` | Connect to or disconnect from VS Code, the status line and sign-in |
+| `cc install` / `cc uninstall` | Connect to or disconnect from VS Code, the status line and start-at-login |
 | `cc serve` / `cc stop` / `cc restart` | Control the relay |
 
 ### How switching decides
@@ -207,7 +236,7 @@ Anthropic's usage endpoint, checked every 3 minutes for every account.
 
 ### Settings
 
-In the dashboard's settings tab, or `%USERPROFILE%\.cc\config.json` (picked up within 30 seconds).
+In the dashboard's settings tab, or `~/.cc/config.json` (picked up within 30 seconds).
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -218,13 +247,13 @@ In the dashboard's settings tab, or `%USERPROFILE%\.cc\config.json` (picked up w
 | `burnMinutes` | `15` | ...if at the current pace the limit is this many minutes away |
 | `startWindow` | `true` | Start a new 5-hour window as soon as the last one ends |
 | `staggerWindows` | `false` | Space accounts' windows 5h ÷ accounts apart instead |
-| `notify` | `true` | Windows notifications |
+| `notify` | `true` | Desktop notifications |
 | `pollSeconds` | `180` | How often to check every account's usage |
 | `port` | `47821` | Relay port on 127.0.0.1 |
 
 ### Good to know
 
-- **VS Code needs the relay running.** It starts at Windows sign-in and restarts
+- **VS Code needs the relay running.** It starts with your computer and restarts
   itself if it crashes. `cc doctor` tells you if it's down. In a terminal,
   `cc start` starts it on demand and falls back to your normal login if it can't.
 - **"Total cost" in the VS Code panel is only an estimate.** Claude Code shows it
@@ -234,18 +263,19 @@ In the dashboard's settings tab, or `%USERPROFILE%\.cc\config.json` (picked up w
   Local MCP servers still work.
 - **After a switch, the conversation continues on the other account.** Only mix
   accounts whose data you're allowed to share.
-- **Window starts need the PC awake.** If it's asleep when a window ends, the next
-  one starts when it wakes.
+- **Window starts need the computer awake.** If it's asleep when a window ends,
+  the next one starts when it wakes.
 
 ### Security
 
 - The relay listens on **127.0.0.1 only** and requires a random local key.
-- Logins live in `%USERPROFILE%\.cc\accounts\*.dat`, encrypted with Windows DPAPI
-  (CurrentUser), and are sent only to Anthropic (`api.anthropic.com`,
+- Logins live in `~/.cc/accounts/*.dat`, encrypted (see the table under
+  [Install](#install)), and are sent only to Anthropic (`api.anthropic.com`,
   `platform.claude.com`). The only other host contacted is `status.claude.com`.
-- During `cc login`, Claude Code writes a temporary plain-text copy of the login;
-  cc deletes it right after encrypting it.
-- `cc install` backs up every settings file it changes to `%USERPROFILE%\.cc\backups\`.
+- Sign-in uses the same OAuth flow (PKCE) and client as Claude Code. On
+  Windows, Claude Code itself performs the sign-in and cc deletes the temporary
+  plain-text copy right after encrypting it.
+- `cc install` backs up every settings file it changes to `~/.cc/backups/`.
 - The local key in VS Code's settings only unlocks the relay on 127.0.0.1. It isn't
   an Anthropic credential.
 
@@ -253,11 +283,11 @@ In the dashboard's settings tab, or `%USERPROFILE%\.cc\config.json` (picked up w
 
 | Path | Contents |
 |---|---|
-| `%USERPROFILE%\.cc\config.json` | Settings, pins, account emails (no logins) |
-| `%USERPROFILE%\.cc\accounts\*.dat` | Encrypted logins |
-| `%USERPROFILE%\.cc\state.json` | Live usage (used by the status line) |
-| `%USERPROFILE%\.cc\history.jsonl` | Switch and usage history |
-| `%USERPROFILE%\.cc\relay.log` | Relay log (`CC_DEBUG=1` logs every request) |
+| `~/.cc/config.json` | Settings, pins, account emails (no logins) |
+| `~/.cc/accounts/*.dat` | Encrypted logins |
+| `~/.cc/state.json` | Live usage (used by the status line) |
+| `~/.cc/history.jsonl` | Switch and usage history |
+| `~/.cc/relay.log` | Relay log (`CC_DEBUG=1` logs every request) |
 
 ### Troubleshooting
 
@@ -266,43 +296,49 @@ In the dashboard's settings tab, or `%USERPROFILE%\.cc\config.json` (picked up w
 | VS Code Claude can't connect | `cc doctor`, then `cc restart` |
 | An account shows "login broken" | Select it in the dashboard and press **l**, or `cc login <name>` |
 | The browser signs in the wrong account | Cancel, use a private window signed into the right account, try again |
+| No browser on this machine | `cc login <name> --manual` |
+| No notifications on Linux | Install libnotify (`notify-send`), e.g. `sudo apt install libnotify-bin` |
 | Usage numbers look stale | Press **r** in the dashboard, or `cc status --refresh` |
-| Anything else | `%USERPROFILE%\.cc\relay.log` |
+| Anything else | `~/.cc/relay.log` |
 
 ### Uninstall
 
-```powershell
-cc uninstall      # disconnect VS Code, status line, start at sign-in
+```bash
+cc uninstall      # disconnect VS Code, status line, start-at-login
 cc stop           # stop the relay
 npm uninstall -g cc-multi-account
-Remove-Item -Recurse "$env:USERPROFILE\.cc"   # deletes saved logins and history
+rm -rf ~/.cc      # Windows: Remove-Item -Recurse "$env:USERPROFILE\.cc"   (deletes saved logins and history)
 ```
 
-Without npm, install with `node cc.js install shim` (puts `cc` in
-`%USERPROFILE%\.local\bin`, which must be on your PATH).
+On macOS, cc also keeps its encryption key in the Keychain under
+`cc-multi-account`; delete it in Keychain Access if you want it gone.
 
 ## Contributing
 
-Issues and pull requests are welcome.
+Issues and pull requests are welcome. Reports from macOS and Linux are
+especially useful.
 
-```powershell
+```bash
 npm test
 ```
 
-The tests run the relay against a fake Anthropic server in a throwaway folder.
-They never touch your real accounts.
+The tests run the relay against a fake Anthropic server in a throwaway folder,
+and run the macOS and Linux code paths on any OS. They never touch your real
+accounts.
 
 | File | Role |
 |---|---|
 | `cc.js` | Command line and launcher |
 | `lib/relay.js` | Relay: choosing accounts, forwarding, refresh, retries, window starts, burn rate |
 | `lib/tui.js` | Dashboard |
+| `lib/platform.js` | What differs per OS: command name, paths, notifications, start-at-login |
+| `lib/vault.js` | Encryption of saved logins (DPAPI / Keychain / key file) |
+| `lib/signin.js` | Browser sign-in (OAuth with PKCE) |
 | `lib/anthropic.js` | Token refresh, usage, profile, 1-token message |
-| `lib/store.js` | Config, state, DPAPI-encrypted logins |
-| `lib/install.js` | VS Code, status line, sign-in start, terminal shim |
+| `lib/store.js` | Config, state, saved logins |
+| `lib/install.js` | VS Code, status line, start-at-login, terminal shim |
 | `lib/sessions.js` | Folder pins (session → project folder) |
 | `lib/history.js` | History and log |
-| `lib/notify.js` | Windows notifications |
 
 ## License
 
